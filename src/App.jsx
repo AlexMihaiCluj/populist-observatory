@@ -34,9 +34,8 @@ function useLeaderboard(analyses){
 }
 
 function EUFlag({size="md"}){
-  const s=size==="sm"?"w-8 h-6":size==="lg"?"w-14 h-10":"w-10 h-7";
-  const d=size==="sm"?"w-0.5 h-0.5":"w-1 h-1";
-  return(<div className={`${s} bg-blue-800 rounded-sm overflow-hidden relative flex items-center justify-center`}><div className="relative w-6 h-6">{[0,30,60,90,120,150,180,210,240,270,300,330].map((deg,i)=>(<div key={i} className={`absolute ${d} bg-yellow-400 rounded-full`} style={{left:`${50+40*Math.cos((deg-90)*Math.PI/180)}%`,top:`${50+40*Math.sin((deg-90)*Math.PI/180)}%`,transform:'translate(-50%,-50%)'}}/>))}</div></div>);
+  const s=size==="sm"?"w-16":size==="lg"?"w-24":"w-20";
+  return(<img src="/eu_cofunded_logo_2.jpg" alt="Co-funded by the European Union" className={`${s} object-contain`}/>);
 }
 function VerdictBadge({verdict}){return(<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold text-white ${VERDICT_COLORS[verdict]||"bg-gray-500"}`}>{verdict}</span>);}
 function Spinner(){return<div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-blue-600 animate-spin"/></div>;}
