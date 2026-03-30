@@ -15,14 +15,20 @@ function getBadgeColor(b){return BADGE_DEFS[b]?.color||"bg-gray-100 text-gray-60
 function useAnalyses(){
   const [analyses,setAnalyses]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [stats,setStats]=useState({total:0,contributors:0,countries:0});
+  const [stats,setStats]=useState({total:0,contributors:0,countries:0,visitors:0});
   const fetch_=useCallback(async()=>{
     setLoading(true);
-    const {data,error}=await supabase.from("analyses").select("*").eq("status","approved").order("created_at",{ascending:false});
-    if(!error&&data){setAnalyses(data);setStats({total:data.length,contributors:new Set(data.map(a=>a.author_email)).size,countries:new Set(data.map(a=>a.country)).size});}
+    const [{data,error},{count}]=await Promise.all([
+      supabase.from("analyses").select("*").eq("status","approved").order("created_at",{ascending:false}),
+      supabase.from("visits").select("*",{count:"exact",head:true})
+    ]);
+    if(!error&&data){setAnalyses(data);setStats({total:data.length,contributors:new Set(data.map(a=>a.author_email)).size,countries:new Set(data.map(a=>a.country)).size,visitors:count||0});}
     setLoading(false);
   },[]);
-  useEffect(()=>{fetch_();},[fetch_]);
+  useEffect(()=>{
+    fetch_();
+    supabase.from("visits").insert([{}]);
+  },[fetch_]);
   return {analyses,loading,stats,refresh:fetch_};
 }
 
@@ -175,7 +181,7 @@ function HomePage({setPage,setSelectedId,analyses,stats,loading}){
       <StatCard icon={FileText} value={stats.total} label="Claims Analysed" color="bg-blue-600"/>
       <StatCard icon={Users} value={stats.contributors} label="Contributors" color="bg-emerald-600"/>
       <StatCard icon={MapPin} value={stats.countries} label="Countries" color="bg-purple-600"/>
-      <StatCard icon={TrendingUp} value="—" label="Visitors" color="bg-amber-600"/>
+      <StatCard icon={TrendingUp} value={stats.visitors} label="Visitors" color="bg-amber-600"/>
     </div></section>
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-14">
       <div className="flex items-center justify-between mb-6"><div><h2 className="text-2xl font-bold text-gray-900">Recent Analyses</h2><p className="text-sm text-gray-500 mt-1">Latest student fact-checking contributions</p></div><button onClick={()=>setPage("browse")} className="text-sm font-semibold text-blue-700 hover:text-blue-900 flex items-center gap-1">View all <ChevronRight className="w-4 h-4"/></button></div>
