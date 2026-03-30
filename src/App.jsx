@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "./supabase";
-import { Search, ChevronRight, Award, TrendingUp, Users, FileText, Send, Star, Filter, Globe, BookOpen, Shield, ArrowLeft, CheckCircle, AlertTriangle, BarChart3, Menu, X, Loader2, ExternalLink, Calendar, Tag, MapPin } from "lucide-react";
+import { Search, ChevronRight, Award, TrendingUp, Users, FileText, Send, Star, Filter, Globe, BookOpen, Shield, ArrowLeft, CheckCircle, AlertTriangle, BarChart3, Menu, X, Loader2, ExternalLink, Calendar, Tag, MapPin, Lock, ThumbsUp, ThumbsDown } from "lucide-react";
 
+const ADMIN_PASSWORD = "PG-Admin-2026!Observatory";
 const CATEGORIES = ["EU Governance","Migration","Climate Policy","EU Budget","Public Health","Security & Defence","Economy & Trade","Rule of Law","Digital Policy","Social Policy"];
 const VERDICTS = ["False","Mostly False","Misleading","Exaggerated","Mixed","Mostly True","True"];
 const COUNTRIES = ["Romania","Hungary","France","Italy","Poland","Germany","Spain","Netherlands","Austria","Czech Republic","Slovakia","Bulgaria","Greece","Belgium","Sweden","Denmark","Finland","Portugal","Ireland","Croatia","Other EU","Non-EU"];
@@ -54,6 +55,89 @@ function AnalysisCard({analysis:a,onClick}){
   </div>);
 }
 
+function AdminPage(){
+  const [authed,setAuthed]=useState(false);
+  const [pw,setPw]=useState("");
+  const [pwErr,setPwErr]=useState(false);
+  const [pending,setPending]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [pts,setPts]=useState({});
+  const [msg,setMsg]=useState({});
+
+  const login=()=>{if(pw===ADMIN_PASSWORD){setAuthed(true);fetchPending();}else{setPwErr(true);}};
+
+  const fetchPending=async()=>{
+    setLoading(true);
+    const {data,error}=await supabase.from("analyses").select("*").eq("status","pending").order("created_at",{ascending:false});
+    if(!error&&data)setPending(data);
+    setLoading(false);
+  };
+
+  const decide=async(id,status)=>{
+    const points=parseInt(pts[id]||30);
+    if(status==="approved"&&(isNaN(points)||points<20||points>60)){setMsg({...msg,[id]:"Points must be between 20 and 60."});return;}
+    const update=status==="approved"?{status,points}:{status:"rejected"};
+    const {error}=await supabase.from("analyses").update(update).eq("id",id);
+    if(error){setMsg({...msg,[id]:"Error: "+error.message});}
+    else{setPending(p=>p.filter(a=>a.id!==id));setMsg({...msg,[id]:status==="approved"?"✅ Approved":"❌ Rejected"});}
+  };
+
+  if(!authed)return(
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="bg-white rounded-2xl border border-gray-200 p-8 w-full max-w-sm shadow-lg">
+        <div className="flex items-center justify-center w-12 h-12 bg-blue-900 rounded-xl mb-6 mx-auto"><Lock className="w-6 h-6 text-white"/></div>
+        <h1 className="text-xl font-bold text-gray-900 text-center mb-1">Admin Panel</h1>
+        <p className="text-sm text-gray-500 text-center mb-6">Populist Discourse Observatory</p>
+        <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setPwErr(false);}} onKeyDown={e=>e.key==="Enter"&&login()} placeholder="Enter admin password" className={`w-full px-3 py-2 text-sm border rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 ${pwErr?"border-red-400":"border-gray-200"}`}/>
+        {pwErr&&<p className="text-xs text-red-600 mb-3">Incorrect password.</p>}
+        <button onClick={login} className="w-full bg-blue-900 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-blue-800">Sign In</button>
+      </div>
+    </div>
+  );
+
+  return(
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex items-center justify-between mb-8">
+        <div><h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1><p className="text-sm text-gray-500 mt-1">Review and approve student submissions</p></div>
+        <button onClick={fetchPending} className="text-sm text-blue-700 hover:text-blue-900 font-semibold flex items-center gap-1"><Loader2 className="w-4 h-4"/>Refresh</button>
+      </div>
+      {loading?<Spinner/>:pending.length===0?(
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-8 text-center"><CheckCircle className="w-10 h-10 text-emerald-500 mx-auto mb-3"/><h3 className="font-semibold text-emerald-900">No pending submissions</h3><p className="text-sm text-emerald-700 mt-1">All analyses have been reviewed.</p></div>
+      ):(
+        <div className="space-y-6">
+          {pending.map(a=>(
+            <div key={a.id} className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1"><span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{a.country}</span><span className="text-xs text-gray-400">·</span><span className="text-xs text-gray-400">{a.category}</span><VerdictBadge verdict={a.verdict}/></div>
+                  <h3 className="text-base font-semibold text-gray-900">{a.title}</h3>
+                </div>
+                <div className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4 mb-4 text-sm">
+                <div><span className="font-medium text-gray-500">Author:</span> {a.author_name} — <span className="text-gray-400">{a.author_email}</span></div>
+                {a.party&&<div><span className="font-medium text-gray-500">Party:</span> {a.party}</div>}
+                {a.source&&<div className="sm:col-span-2"><span className="font-medium text-gray-500">Source:</span> {a.source}</div>}
+              </div>
+              <div className="mb-4"><p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Summary</p><p className="text-sm text-gray-700">{a.summary}</p></div>
+              {a.full_analysis&&<div className="mb-4"><p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Full Analysis</p><p className="text-sm text-gray-600 whitespace-pre-wrap line-clamp-4">{a.full_analysis}</p></div>}
+              <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Points (20–60):</label>
+                  <input type="number" min="20" max="60" value={pts[a.id]||30} onChange={e=>setPts({...pts,[a.id]:e.target.value})} className="w-20 px-2 py-1 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                </div>
+                <button onClick={()=>decide(a.id,"approved")} className="flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-emerald-700"><ThumbsUp className="w-4 h-4"/>Approve</button>
+                <button onClick={()=>decide(a.id,"rejected")} className="flex items-center gap-1.5 bg-red-500 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-red-600"><ThumbsDown className="w-4 h-4"/>Reject</button>
+                {msg[a.id]&&<span className="text-sm font-medium text-gray-600">{msg[a.id]}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Header({page,setPage}){
   const [mo,setMo]=useState(false);
   const nav=[{key:"home",label:"Home"},{key:"browse",label:"Browse"},{key:"submit",label:"Submit"},{key:"leaderboard",label:"Leaderboard"},{key:"about",label:"About"}];
@@ -72,7 +156,9 @@ function Footer({setPage}){
     <div><div className="flex items-center gap-2 mb-3"><Globe className="w-5 h-5 text-yellow-400"/><span className="text-sm font-bold text-white">Populist Discourse Observatory</span></div><p className="text-xs leading-relaxed">A student-driven research platform within the POPULIST-GAMEMODE Jean Monnet Module at Babeș-Bolyai University, Cluj-Napoca.</p></div>
     <div><h4 className="text-sm font-semibold text-white mb-3">Quick Links</h4><div className="space-y-1.5 text-xs">{[["browse","Browse Analyses"],["submit","Submit a Report"],["leaderboard","Leaderboard"],["about","About"]].map(([k,l])=>(<button key={k} onClick={()=>setPage(k)} className="block hover:text-white transition-colors">{l}</button>))}<a href="https://populistgamemode.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">Project Website <ExternalLink className="w-3 h-3"/></a></div></div>
     <div><h4 className="text-sm font-semibold text-white mb-3">Contact</h4><div className="space-y-1.5 text-xs"><p>Babeș-Bolyai University</p><p>Faculty of History and Philosophy</p><p>Dept. of International Studies</p><p>Cluj-Napoca, Romania</p></div></div>
-  </div><div className="border-t border-gray-800 pt-6"><p className="text-xs text-center leading-relaxed">Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor EACEA can be held responsible for them.<br/><span className="text-gray-600">Grant No. 101238497 · ERASMUS-JMO-2025-HEI-TCH-RSCH</span></p></div></div></footer>);
+  </div><div className="border-t border-gray-800 pt-6"><p className="text-xs text-center leading-relaxed">Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or the European Education and Culture Executive Agency (EACEA). Neither the European Union nor EACEA can be held responsible for them.<br/><span className="text-gray-600">Grant No. 101238497 · ERASMUS-JMO-2025-HEI-TCH-RSCH</span></p>
+  <p className="text-center mt-4"><button onClick={()=>setPage("admin")} className="text-gray-800 text-xs hover:text-gray-600">·</button></p>
+  </div></div></footer>);
 }
 
 function HomePage({setPage,setSelectedId,analyses,stats,loading}){
@@ -185,6 +271,7 @@ export default function App(){
   const [page,setPage]=useState("home");const [selectedId,setSelectedId]=useState(null);
   const {analyses,loading,stats}=useAnalyses();const leaderboard=useLeaderboard(analyses);
   useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[page]);
-  const P=()=>{switch(page){case"home":return<HomePage setPage={setPage} setSelectedId={setSelectedId} analyses={analyses} stats={stats} loading={loading}/>;case"browse":return<BrowsePage setPage={setPage} setSelectedId={setSelectedId} analyses={analyses} loading={loading}/>;case"detail":return<DetailPage analysisId={selectedId} analyses={analyses} setPage={setPage}/>;case"submit":return<SubmitPage/>;case"leaderboard":return<LeaderboardPage leaderboard={leaderboard} loading={loading}/>;case"about":return<AboutPage/>;default:return<HomePage setPage={setPage} setSelectedId={setSelectedId} analyses={analyses} stats={stats} loading={loading}/>;}}; 
+  const P=()=>{switch(page){case"home":return<HomePage setPage={setPage} setSelectedId={setSelectedId} analyses={analyses} stats={stats} loading={loading}/>;case"browse":return<BrowsePage setPage={setPage} setSelectedId={setSelectedId} analyses={analyses} loading={loading}/>;case"detail":return<DetailPage analysisId={selectedId} analyses={analyses} setPage={setPage}/>;case"submit":return<SubmitPage/>;case"leaderboard":return<LeaderboardPage leaderboard={leaderboard} loading={loading}/>;case"about":return<AboutPage/>;case"admin":return<AdminPage/>;default:return<HomePage setPage={setPage} setSelectedId={setSelectedId} analyses={analyses} stats={stats} loading={loading}/>;}}; 
+  if(page==="admin")return<AdminPage/>;
   return(<div className="min-h-screen bg-gray-50 flex flex-col"><Header page={page} setPage={setPage}/><main className="flex-1"><P/></main><Footer setPage={setPage}/></div>);
 }
