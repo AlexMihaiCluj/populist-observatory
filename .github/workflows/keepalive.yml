@@ -12,14 +12,11 @@ jobs:
       - name: Ping Supabase Project
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X GET \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            "https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co/rest/v1/?limit=1")
+            "https://${{ secrets.SUPABASE_PROJECT_REF }}.supabase.co/auth/v1/health")
           
           echo "Response code: $response"
           
-          if [ "$response" -ge 200 ] && [ "$response" -lt 300 ]; then
+          if [ "$response" -eq 200 ]; then
             echo "Keep-alive ping successful"
           else
             echo "Keep-alive ping failed"
