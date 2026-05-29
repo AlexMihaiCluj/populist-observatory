@@ -26,30 +26,45 @@ export default async function handler(req, res) {
   const approve60 = `${baseUrl}/api/moderate?token=${token}&action=approve&points=60`;
   const reject = `${baseUrl}/api/moderate?token=${token}&action=reject`;
 
-  const contentPreview = (record.content || record.description || record.analysis || 'N/A');
-  const truncated = contentPreview.length > 500
-    ? contentPreview.substring(0, 500) + '...'
-    : contentPreview;
+  const fullAnalysisText = record.full_analysis || 'Nu a fost furnizata analiza completa.';
+  const summaryText = record.summary || 'N/A';
+  const claimText = record.claim_text || 'N/A';
+  const verdictText = record.verdict || 'N/A';
+  const categoryText = record.category || 'N/A';
 
   const html = `
-    <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
+    <div style="font-family: Georgia, serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f8f9fa;">
       <div style="background: #1e3a8a; color: white; padding: 20px; border-radius: 8px 8px 0 0;">
-        <h2 style="margin: 0; font-size: 18px;">Submisie nouă pe Populist Discourse Observatory</h2>
+        <h2 style="margin: 0; font-size: 18px;">Submisie noua pe Populist Discourse Observatory</h2>
       </div>
       <div style="background: white; padding: 25px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+
         <table style="width: 100%; border-collapse: collapse;">
           <tr><td style="padding: 8px 0; font-weight: bold; width: 140px; color: #374151;">Titlu:</td><td style="color: #111827;">${record.title || 'N/A'}</td></tr>
-          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Tara:</td><td style="color: #111827;">${record.country || 'N/A'}</td></tr>
-          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Autor:</td><td style="color: #111827;">${record.author_name || record.author || 'N/A'}</td></tr>
+          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Autor:</td><td style="color: #111827;">${record.author_name || 'N/A'}</td></tr>
           <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Email:</td><td style="color: #111827;">${record.author_email || 'N/A'}</td></tr>
-          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Sursa:</td><td style="color: #111827; word-break: break-all;">${record.source_url || record.url || 'N/A'}</td></tr>
+          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Tara:</td><td style="color: #111827;">${record.country || 'N/A'}</td></tr>
+          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Categorie:</td><td style="color: #111827;">${categoryText}</td></tr>
+          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Verdict:</td><td style="color: #111827;"><strong style="background: #fef3c7; padding: 2px 8px; border-radius: 4px;">${verdictText}</strong></td></tr>
+          <tr><td style="padding: 8px 0; font-weight: bold; color: #374151;">Sursa:</td><td style="color: #111827; word-break: break-all;"><a href="${record.source || '#'}" style="color: #1e3a8a;">${record.source || 'N/A'}</a></td></tr>
         </table>
 
-        <div style="margin-top: 20px; padding: 15px; background: #f3f4f6; border-left: 4px solid #1e3a8a; border-radius: 4px;">
-          <p style="margin: 0; font-style: italic; color: #4b5563; line-height: 1.5;">${truncated}</p>
+        <div style="margin-top: 25px;">
+          <h3 style="color: #1e3a8a; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px;">Afirmatia evaluata</h3>
+          <p style="margin: 0; padding: 12px; background: #fef3c7; border-left: 4px solid #f59e0b; line-height: 1.6; color: #1f2937;">${claimText}</p>
         </div>
 
-        <div style="margin-top: 30px; text-align: center;">
+        <div style="margin-top: 20px;">
+          <h3 style="color: #1e3a8a; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px;">Rezumat</h3>
+          <p style="margin: 0; padding: 12px; background: #f3f4f6; line-height: 1.6; color: #374151;">${summaryText}</p>
+        </div>
+
+        <div style="margin-top: 20px;">
+          <h3 style="color: #1e3a8a; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px;">Analiza completa</h3>
+          <div style="margin: 0; padding: 15px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 4px; line-height: 1.7; color: #1f2937; white-space: pre-wrap;">${fullAnalysisText}</div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; padding-top: 20px; border-top: 2px solid #e5e7eb;">
           <p style="margin-bottom: 15px; font-weight: bold; color: #374151;">Decide actiunea:</p>
 
           <a href="${approve20}" style="display: inline-block; padding: 12px 18px; margin: 5px; background: #10b981; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px;">Aproba (20 pct)</a>
