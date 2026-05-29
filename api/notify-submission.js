@@ -74,7 +74,7 @@ export default async function handler(req, res) {
   try {
     const { data, error } = await resend.emails.send({
       from: 'Populist Observatory <onboarding@resend.dev>',
-      to: 'contact@populistgamemode.com',
+      to: 'johnmycaell07@gmail.com',
       replyTo: record.author_email || 'contact@populistgamemode.com',
       subject: `[Observatory] Submisie noua: ${record.title || 'Untitled'} (${record.country || 'N/A'})`,
       html: html,
